@@ -1,0 +1,15 @@
+images/
+.env/
+env/
+.ruff_cache
+__pycache__
+faiss.index
+paths.npy
+p.md
+node_modules/
+package-lock.json
+backend/video_faiss.index
+backend/video_metadata.npy
+frames/
+uploads/
+videos/

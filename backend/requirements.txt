@@ -1,0 +1,8 @@
+fastapi[standard]
+ruff
+faiss-cpu
+pillow
+torch
+torchvision
+--extra-index-url https://download.pytorch.org/whl/cu128
+transformers
