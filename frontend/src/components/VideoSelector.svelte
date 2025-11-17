@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { selectedVideo } from '../stores/videoStore';
+  import { selectedVideo, uploadedVideo } from '../stores/videoStore';
 
   // Local state
   let videos = [];
@@ -34,6 +34,7 @@
   // Select video helper
   function chooseVideo(v) {
     selectedVideo.set(v);
+    uploadedVideo.set(v);
   }
 </script>
 

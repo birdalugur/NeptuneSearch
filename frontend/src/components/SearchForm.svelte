@@ -5,7 +5,8 @@ Arama formu ve filtreleme kontrolleri.
 <script>
   import { createEventDispatcher } from 'svelte';
   import TopKButtons from './TopKButtons.svelte';
-  import { uploadedVideo } from '../stores/videoStore';
+  import { selectedVideo } from '../stores/videoStore';
+
   
   export let query = '';
   export let hasResults = false;
@@ -17,7 +18,7 @@ Arama formu ve filtreleme kontrolleri.
   function handleSubmit(e) {
     e.preventDefault();
     
-    if (!$uploadedVideo) {
+    if (!$selectedVideo) {
       alert('Please upload a video first!');
       return;
     }
@@ -28,7 +29,7 @@ Arama formu ve filtreleme kontrolleri.
   }
   
   $: inputValue = query;
-  $: isDisabled = !$uploadedVideo;
+  $: isDisabled = !$selectedVideo;
 </script>
 
 <form on:submit={handleSubmit}>

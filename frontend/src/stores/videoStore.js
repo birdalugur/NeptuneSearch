@@ -11,6 +11,9 @@ import { writable } from 'svelte/store';
  */
 export const uploadedVideo = writable(null);
 
+
+export const selectedVideo = writable(null);
+
 /**
  * Video yükleme durumu
  */

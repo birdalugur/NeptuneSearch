@@ -3,6 +3,7 @@
   import SearchForm from "./components/SearchForm.svelte";
   import ImageGrid from "./components/ImageGrid.svelte";
   import VideoPlayer from "./components/VideoPlayer.svelte";
+  import VideoSelector from "./components/VideoSelector.svelte";
   import { search } from "./utils/api";
 
   let results = [];
@@ -64,6 +65,7 @@
   </div>
 
   <VideoUploader on:uploaded={handleVideoUploaded} />
+  <VideoSelector />
 
   <SearchForm
     on:search={(e) => handleSearch(e.detail)}

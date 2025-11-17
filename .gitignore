@@ -6,6 +6,8 @@ __pycache__
 faiss.index
 paths.npy
 p.md
+p2.md
+tree.sh
 node_modules/
 package-lock.json
 backend/video_faiss.index
@@ -13,3 +15,7 @@ backend/video_metadata.npy
 frames/
 uploads/
 videos/
+issue.md
+p1.md
+video_faiss.index
+video_metadata.npy
