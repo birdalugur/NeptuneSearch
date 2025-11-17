@@ -5,6 +5,7 @@
   import VideoPlayer from "./components/VideoPlayer.svelte";
   import VideoSelector from "./components/VideoSelector.svelte";
   import { search } from "./utils/api";
+  import { selectedVideo } from "./stores/videoStore";
 
   let results = [];
   let query = "";
@@ -23,12 +24,18 @@
    * Arama işlemini gerçekleştirir
    */
   async function handleSearch(searchQuery) {
+    if (!$selectedVideo || !$selectedVideo.video_id) {
+      error = "Please select a video first!";
+      showNotification(error, "error");
+      return;
+    }
+
     query = searchQuery;
     loading = true;
     error = null;
 
     try {
-      const response = await search(searchQuery);
+      const response = await search($selectedVideo.video_id, searchQuery);
       results = response.results || [];
 
       if (results.length === 0) {

@@ -58,13 +58,15 @@ export async function uploadVideo(file, onProgress = null) {
 /**
  * Arama fonksiyonu
  * 
+ * @param {string} videoId - Video ID (hangi video üzerinde arama yapılacak)
  * @param {string} query - Arama sorgusu
  * @param {number} k - Maksimum sonuç sayısı
  * @param {number} similarityThreshold - Minimum benzerlik eşiği
  * @returns {Promise<Object>} Arama sonuçları
  */
-export async function search(query, k = 30, similarityThreshold = 0.1) {
+export async function search(videoId, query, k = 30, similarityThreshold = 0.1) {
   const formData = new FormData();
+  formData.append('video_id', videoId);
   formData.append('query', query);
   formData.append('k', k.toString());
   formData.append('similarity_threshold', similarityThreshold.toString());
