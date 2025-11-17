@@ -126,7 +126,10 @@ async def upload_video(file: UploadFile = File(...)):
 
 @router.post("/search", response_model=SearchResponse)
 async def search(
-    query: str = Form(...), k: int = Form(30), similarity_threshold: float = Form(0.1)
+    query: str = Form(...),
+    video_id: Optional[str] = Form(None),
+    k: int = Form(30),
+    similarity_threshold: float = Form(0.1),
 ):
     """
     Arama endpoint.
@@ -134,7 +137,7 @@ async def search(
     Metin sorgusuyla benzer frame'leri bulur.
     """
     try:
-        logger.info(f"Search query: '{query}', k={k}")
+        logger.info(f"Search query: '{query}', video_id={video_id}, k={k}")
 
         if not search_engine.index:
             raise HTTPException(
@@ -142,12 +145,21 @@ async def search(
                 detail="No videos indexed. Please upload a video first.",
             )
 
+        if video_id:
+            video_metadata = search_engine.get_video_metadata(video_id)
+            if not video_metadata:
+                raise HTTPException(
+                    status_code=404, detail=f"Video with id '{video_id}' not found."
+                )
+
         # Text feature çıkar
         text_features = feature_extractor.extract_text_features(query)
 
-        # Arama yap
         search_results = search_engine.search(
-            text_features, k=k, similarity_threshold=similarity_threshold
+            text_features,
+            k=k,
+            similarity_threshold=similarity_threshold,
+            video_id=video_id,
         )
 
         # Response oluştur
@@ -170,7 +182,10 @@ async def search(
             )
 
         return SearchResponse(
-            query=query, results=frame_results, total_results=len(frame_results)
+            query=query,
+            video_id=video_id,
+            results=frame_results,
+            total_results=len(frame_results),
         )
 
     except HTTPException:

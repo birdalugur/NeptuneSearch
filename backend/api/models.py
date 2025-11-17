@@ -6,6 +6,9 @@ class SearchQuery(BaseModel):
     """Arama sorgusu modeli"""
 
     query: str = Field(..., min_length=1, description="Arama sorgusu metni")
+    video_id: Optional[str] = Field(
+        None, description="Arama yapılacak video ID (opsiyonel)"
+    )
     k: Optional[int] = Field(30, ge=1, le=100, description="Maksimum sonuç sayısı")
     similarity_threshold: Optional[float] = Field(
         0.1, ge=0.0, le=1.0, description="Minimum benzerlik eşiği"
@@ -39,6 +42,7 @@ class SearchResponse(BaseModel):
     """Arama sonucu response modeli"""
 
     query: str
+    video_id: Optional[str] = None
     results: List[FrameResult]
     total_results: int
 

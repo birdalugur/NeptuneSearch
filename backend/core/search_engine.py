@@ -146,6 +146,7 @@ class SearchEngine:
         query_features: np.ndarray,
         k: int = None,
         similarity_threshold: float = None,
+        video_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Query feature'ına en benzer frame'leri bulur.
@@ -154,6 +155,7 @@ class SearchEngine:
             query_features: Query feature vektörü
             k: Döndürülecek maksimum sonuç sayısı
             similarity_threshold: Minimum benzerlik eşiği
+            video_id: Belirli bir video ID (opsiyonel, belirtilmezse tüm videolarda arar)
 
         Returns:
             Sonuç listesi (her biri frame_metadata, video_metadata ve score içerir)
@@ -168,27 +170,47 @@ class SearchEngine:
         query_features = query_features.reshape(1, -1).astype("float32")
         faiss.normalize_L2(query_features)
 
-        scores, indices = self.index.search(query_features, k)
+        # Eğer video_id belirtilmişse, filtreleme sonrası k'dan az sonuç kalabilir
+        search_k = k * 10 if video_id else k
 
-        # Sonuçları hazırla
+        scores, indices = self.index.search(
+            query_features, min(search_k, self.index.ntotal)
+        )
+
         results = []
         for idx, (index, score) in enumerate(zip(indices[0], scores[0])):
             if index == -1 or score < similarity_threshold:
                 continue
 
             frame_metadata = self.frame_metadata_list[index]
+
+            # Eğer video_id belirtilmişse, sadece o video'nun frame'lerini al
+            if video_id and frame_metadata.video_id != video_id:
+                continue
+
             video_metadata = self.video_metadata_dict[frame_metadata.video_id]
 
             results.append(
                 {
-                    "rank": idx + 1,
+                    "rank": len(results) + 1,  # Filtrelemeden sonra yeniden rank
                     "score": float(score),
                     "frame_metadata": frame_metadata,
                     "video_metadata": video_metadata,
                 }
             )
 
-        logger.info(f"Search completed: {len(results)} results found")
+            # İstenen sonuç sayısına ulaşıldıysa dur
+            if len(results) >= k:
+                break
+
+        if video_id:
+            logger.info(
+                f"Search completed for video {video_id}: {len(results)} results found"
+            )
+        else:
+            logger.info(
+                f"Search completed across all videos: {len(results)} results found"
+            )
 
         return results
 
