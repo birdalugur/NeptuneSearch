@@ -9,64 +9,97 @@
   const dispatch = createEventDispatcher();
 
   let inputValue = query;
+  let isFocused = false;
 
   function handleSubmit(e) {
     e.preventDefault();
-
-    if (!$selectedVideo) {
-      alert("Please upload a video first!");
-      return;
-    }
-
+    if (!$selectedVideo) return;
     if (inputValue.trim()) {
       dispatch("search", inputValue.trim());
     }
   }
 
+  function handleKeydown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  }
+
   $: inputValue = query;
   $: isDisabled = !$selectedVideo;
+  $: placeholder = isDisabled
+    ? "Please upload or select a video first..."
+    : "Describe what you're looking for (e.g., 'person walking', 'car passing by', 'someone wearing red')";
 </script>
 
-<form on:submit={handleSubmit} class="flex flex-col gap-4 mb-12">
-  <div
-    class="flex justify-center items-center gap-4 flex-wrap md:flex-col md:w-full"
-  >
-    <input
-      type="text"
-      bind:value={inputValue}
-      placeholder={isDisabled
-        ? "Upload a video first..."
-        : "Describe what you're looking for (e.g., person walking, car passing)"}
-      required
-      disabled={isDisabled}
-      class="w-full max-w-[500px] md:max-w-full px-4 py-3 text-base rounded-xl border border-gray-300 shadow-sm
-             transition-all duration-300
-             focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary
-             disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-    />
+<div class="mb-8">
+  <form on:submit={handleSubmit} class="space-y-4">
+    <div class="relative">
+      <div class="relative flex items-center">
+        <input
+          type="text"
+          bind:value={inputValue}
+          {placeholder}
+          required
+          disabled={isDisabled}
+          on:keydown={handleKeydown}
+          on:focus={() => (isFocused = true)}
+          on:blur={() => (isFocused = false)}
+          class="w-full px-6 py-4 text-lg rounded-2xl border-2 border-gray-200 bg-white shadow-sm
+                 transition-all duration-300
+                 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100
+                 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60
+                 placeholder-gray-400"
+        />
 
-    <button
-      type="submit"
-      disabled={isDisabled}
-      class="bg-primary text-white font-semibold text-base px-6 py-3 rounded-xl border-none cursor-pointer
-             whitespace-nowrap transition-all duration-300
-             hover:bg-primary-hover hover:-translate-y-0.5
-             disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none
-             md:w-full"
-    >
-      🔍 Search
-    </button>
-  </div>
+        <button
+          type="submit"
+          disabled={isDisabled}
+          class="absolute right-2 bg-blue-600 text-white font-semibold text-base px-6 py-3 rounded-xl
+                 transition-all duration-300 flex items-center gap-2
+                 hover:bg-blue-700 hover:shadow-lg hover:scale-105
+                 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none
+                 active:scale-95"
+        >
+          <span class="text-lg">🔍</span>
+          Search
+        </button>
+      </div>
 
-  {#if hasResults}
-    <div class="flex justify-center items-center">
-      <TopKButtons on:filter />
+      {#if isFocused && !isDisabled}
+        <div
+          class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10"
+        >
+          <p class="text-sm text-gray-600 mb-2 font-medium">
+            Search suggestions:
+          </p>
+          <div class="space-y-1">
+            <div class="text-sm text-gray-500">• "person walking"</div>
+            <div class="text-sm text-gray-500">• "car passing by"</div>
+            <div class="text-sm text-gray-500">• "someone wearing red"</div>
+          </div>
+        </div>
+      {/if}
     </div>
-  {/if}
 
-  {#if isDisabled}
-    <p class="text-center text-red-600 font-semibold animate-pulse-opacity">
-      ⚠️ Please upload a video before searching
-    </p>
-  {/if}
-</form>
+    {#if hasResults}
+      <div class="flex justify-center">
+        <TopKButtons on:filter />
+      </div>
+    {/if}
+
+    {#if isDisabled}
+      <div
+        class="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-xl"
+      >
+        <p
+          class="text-yellow-800 font-medium flex items-center justify-center gap-2"
+        >
+          <span class="text-lg">📹</span>
+          Please upload or select a video to start searching
+        </p>
+      </div>
+    {/if}
+  </form>
+</div>

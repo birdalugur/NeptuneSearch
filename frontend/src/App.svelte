@@ -1,32 +1,47 @@
+<!-- frontend/src/App.svelte -->
 <script>
   import VideoUploader from "./components/VideoUploader.svelte";
   import SearchForm from "./components/SearchForm.svelte";
   import ImageGrid from "./components/ImageGrid.svelte";
   import VideoPlayer from "./components/VideoPlayer.svelte";
   import VideoSelector from "./components/VideoSelector.svelte";
+  import Notification from "./components/Notification.svelte";
   import { search } from "./utils/api";
   import { selectedVideo } from "./stores/videoStore";
 
   let results = [];
   let query = "";
   let loading = false;
-  let error = null;
+  let notifications = [];
 
   function handleVideoUploaded(event) {
-    console.log("Video uploaded:", event.detail);
-    showNotification("Video processed successfully! You can now search.");
+    showNotification(
+      "Video processed successfully! You can now search.",
+      "success",
+    );
+  }
+
+  function showNotification(message, type = "info") {
+    const id = Date.now();
+    notifications = [...notifications, { id, message, type }];
+
+    setTimeout(() => {
+      notifications = notifications.filter((n) => n.id !== id);
+    }, 5000);
+  }
+
+  function removeNotification(id) {
+    notifications = notifications.filter((n) => n.id !== id);
   }
 
   async function handleSearch(searchQuery) {
     if (!$selectedVideo || !$selectedVideo.video_id) {
-      error = "Please select a video first!";
-      showNotification(error, "error");
+      showNotification("Please select a video first!", "error");
       return;
     }
 
     query = searchQuery;
     loading = true;
-    error = null;
 
     try {
       const response = await search($selectedVideo.video_id, searchQuery);
@@ -37,62 +52,92 @@
           "No matching frames found. Try a different query.",
           "warning",
         );
+      } else {
+        showNotification(`Found ${results.length} matching frames!`, "success");
       }
     } catch (err) {
       console.error("Search failed:", err);
-      error = err.message || "Search failed. Please try again.";
+      showNotification(
+        err.message || "Search failed. Please try again.",
+        "error",
+      );
       results = [];
-      showNotification(error, "error");
     } finally {
       loading = false;
     }
   }
-
-  function showNotification(message, type = "info") {
-    console.log(`[${type.toUpperCase()}] ${message}`);
-  }
 </script>
 
-<main class="bg-gradient-to-br from-white to-gray-100 min-h-screen p-8 md:p-4 font-sans text-primary">
-  <div class="max-w-[1600px] mx-auto">
-    <div class="text-center mb-8">
-      <div class="mb-4">
-        <img src="logo.png" alt="Logo" class="h-[140px] mx-auto" />
-      </div>
+<main
+  class="bg-gradient-to-br from-white to-gray-50 min-h-screen p-4 md:p-6 font-sans text-gray-900"
+>
+  <div class="max-w-7xl mx-auto">
+    <!-- Notifications Container -->
+    <div class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+      {#each notifications as notification}
+        <Notification
+          {notification}
+          on:close={() => removeNotification(notification.id)}
+        />
+      {/each}
+    </div>
 
-      <h1 class="text-4xl md:text-3xl font-semibold mb-2">
-        Video Semantic Search with AI
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="mb-6">
+        <img src="logo.png" alt="Neptune Search" class="h-24 mx-auto" />
+      </div>
+      <h1
+        class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4"
+      >
+        Video Semantic Search
       </h1>
-      <p class="text-lg text-gray-600">
-        Upload a video and search for specific moments using natural language
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+        Upload a video and search for specific moments using natural language AI
       </p>
     </div>
 
-    <VideoUploader on:uploaded={handleVideoUploaded} />
-    <VideoSelector />
-
-    <SearchForm
-      on:search={(e) => handleSearch(e.detail)}
-      {query}
-      hasResults={results.length > 0}
-    />
-
-    {#if loading}
-      <div class="text-center py-16 px-8">
-        <div class="w-[50px] h-[50px] mx-auto mb-4 border-4 border-gray-300 border-t-primary rounded-full animate-spin-custom"></div>
-        <p class="text-xl text-gray-600">Searching through video frames...</p>
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Left Column - Upload & Selection -->
+      <div class="lg:col-span-1 space-y-6">
+        <VideoUploader on:uploaded={handleVideoUploaded} />
+        <VideoSelector />
       </div>
-    {/if}
 
-    {#if error}
-      <div class="bg-red-50 text-red-700 p-4 rounded-xl text-center mb-8 font-semibold border-2 border-red-200">
-        ⚠️ {error}
+      <!-- Right Column - Search & Results -->
+      <div class="lg:col-span-2">
+        <SearchForm
+          on:search={(e) => handleSearch(e.detail)}
+          {query}
+          hasResults={results.length > 0}
+        />
+
+        {#if loading}
+          <div class="text-center py-12">
+            <div class="inline-flex flex-col items-center">
+              <div
+                class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"
+              ></div>
+              <p class="text-lg text-gray-600 font-medium">
+                Searching through video frames...
+              </p>
+              <p class="text-sm text-gray-500 mt-2">
+                Analyzing content with AI
+              </p>
+            </div>
+          </div>
+        {/if}
+
+        {#if !loading && results.length > 0}
+          <div
+            class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
+          >
+            <ImageGrid {results} />
+          </div>
+        {/if}
       </div>
-    {/if}
-
-    {#if !loading}
-      <ImageGrid {results} />
-    {/if}
+    </div>
 
     <VideoPlayer />
   </div>

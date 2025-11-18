@@ -8,6 +8,13 @@
   const dispatch = createEventDispatcher();
 
   $: imageUrl = getFrameUrl(result.thumbnail_url);
+  $: matchPercentage = (result.score * 100).toFixed(1);
+  $: matchColor =
+    result.score > 0.7
+      ? "text-green-600"
+      : result.score > 0.4
+        ? "text-yellow-600"
+        : "text-orange-600";
 
   async function handleClick() {
     try {
@@ -19,7 +26,7 @@
       dispatch("play", segmentInfo);
     } catch (error) {
       console.error("Error getting video segment:", error);
-      alert("Failed to load video segment");
+      dispatch("error", "Failed to load video segment");
     }
   }
 
@@ -31,38 +38,58 @@
 </script>
 
 <div
-  class="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1.5 group"
+  class="group bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200
+         hover:shadow-xl hover:border-blue-300 transition-all duration-300 cursor-pointer
+         hover:-translate-y-2 active:translate-y-0"
   on:click={handleClick}
   role="button"
   tabindex="0"
   on:keypress={(e) => e.key === "Enter" && handleClick()}
 >
-  <div class="relative w-full h-[200px] md:h-[150px] overflow-hidden">
+  <div class="relative w-full aspect-video overflow-hidden bg-gray-100">
     <img
       src={imageUrl}
-      alt="Result frame at {formatTimestamp(result.timestamp)}"
-      class="w-full h-full object-cover block"
+      alt="Video frame at {formatTimestamp(result.timestamp)}"
+      class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+      loading="lazy"
     />
 
+    <!-- Hover overlay -->
     <div
-      class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent
+                opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4"
     >
-      <div class="text-5xl text-white drop-shadow-lg">▶</div>
+      <div class="text-white text-center w-full">
+        <div class="text-2xl mb-1">▶</div>
+        <div class="text-sm font-medium">Click to play</div>
+      </div>
+    </div>
+
+    <!-- Timestamp badge -->
+    <div
+      class="absolute top-3 left-3 bg-black/80 text-white px-2 py-1 rounded-lg text-sm font-medium"
+    >
+      ⏱️ {formatTimestamp(result.timestamp)}
     </div>
   </div>
 
-  <div
-    class="p-4 flex justify-between items-center md:flex-col md:items-start md:gap-2"
-  >
-    <div class="font-semibold text-primary text-[0.95rem]">
-      ⏱️ {formatTimestamp(result.timestamp)}
-    </div>
-
-    <div class="flex items-center gap-1">
-      <span class="text-[0.85rem] text-gray-600">Match:</span>
-      <span class="font-semibold text-green-600 text-[0.9rem]">
-        {(result.score * 100).toFixed(1)}%
-      </span>
+  <div class="p-4">
+    <div class="flex items-center justify-between">
+      <div class="text-sm text-gray-600">Confidence:</div>
+      <div class="flex items-center gap-2">
+        <div class={`font-bold ${matchColor}`}>
+          {matchPercentage}%
+        </div>
+        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            class="h-full transition-all duration-500 rounded-full"
+            class:bg-green-500={result.score > 0.7}
+            class:bg-yellow-500={result.score <= 0.7 && result.score > 0.4}
+            class:bg-orange-500={result.score <= 0.4}
+            style={`width: ${matchPercentage}%`}
+          ></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
