@@ -1,7 +1,3 @@
-<!--
-Arama sonucu frame'leri gösterir ve tıklandığında video segment'ini oynatır.
--->
-
 <script>
   import { getFrameUrl, getVideoSegment } from "../utils/api";
   import { videoStore } from "../stores/videoStore";
@@ -13,9 +9,6 @@ Arama sonucu frame'leri gösterir ve tıklandığında video segment'ini oynatı
 
   $: imageUrl = getFrameUrl(result.thumbnail_url);
 
-  /**
-   * Frame'e tıklandığında video segment'ini oynatır
-   */
   async function handleClick() {
     try {
       const segmentInfo = await getVideoSegment(
@@ -30,9 +23,6 @@ Arama sonucu frame'leri gösterir ve tıklandığında video segment'ini oynatı
     }
   }
 
-  /**
-   * Zaman formatı
-   */
   function formatTimestamp(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -41,129 +31,38 @@ Arama sonucu frame'leri gösterir ve tıklandığında video segment'ini oynatı
 </script>
 
 <div
-  class="card"
+  class="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1.5 group"
   on:click={handleClick}
   role="button"
   tabindex="0"
   on:keypress={(e) => e.key === "Enter" && handleClick()}
 >
-  <div class="image-container">
+  <div class="relative w-full h-[200px] md:h-[150px] overflow-hidden">
     <img
       src={imageUrl}
       alt="Result frame at {formatTimestamp(result.timestamp)}"
+      class="w-full h-full object-cover block"
     />
 
-    <div class="overlay">
-      <div class="play-icon">▶</div>
+    <div
+      class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+    >
+      <div class="text-5xl text-white drop-shadow-lg">▶</div>
     </div>
   </div>
 
-  <div class="card-info">
-    <div class="timestamp">
+  <div
+    class="p-4 flex justify-between items-center md:flex-col md:items-start md:gap-2"
+  >
+    <div class="font-semibold text-primary text-[0.95rem]">
       ⏱️ {formatTimestamp(result.timestamp)}
     </div>
 
-    <div class="score">
-      <span class="score-label">Match:</span>
-      <span class="score-value">{(result.score * 100).toFixed(1)}%</span>
+    <div class="flex items-center gap-1">
+      <span class="text-[0.85rem] text-gray-600">Match:</span>
+      <span class="font-semibold text-green-600 text-[0.9rem]">
+        {(result.score * 100).toFixed(1)}%
+      </span>
     </div>
   </div>
 </div>
-
-<style>
-  .card {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
-    cursor: pointer;
-  }
-
-  .card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-  }
-
-  .image-container {
-    position: relative;
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-  }
-
-  .image-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .card:hover .overlay {
-    opacity: 1;
-  }
-
-  .play-icon {
-    font-size: 3rem;
-    color: white;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  }
-
-  .card-info {
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .timestamp {
-    font-weight: 600;
-    color: #111e68;
-    font-size: 0.95rem;
-  }
-
-  .score {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .score-label {
-    font-size: 0.85rem;
-    color: #666;
-  }
-
-  .score-value {
-    font-weight: 600;
-    color: #28a745;
-    font-size: 0.9rem;
-  }
-
-  @media (max-width: 768px) {
-    .image-container {
-      height: 150px;
-    }
-
-    .card-info {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-  }
-</style>

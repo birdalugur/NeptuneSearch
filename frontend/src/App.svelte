@@ -12,17 +12,11 @@
   let loading = false;
   let error = null;
 
-  /**
-   * Video yüklendiğinde çağrılır
-   */
   function handleVideoUploaded(event) {
     console.log("Video uploaded:", event.detail);
     showNotification("Video processed successfully! You can now search.");
   }
 
-  /**
-   * Arama işlemini gerçekleştirir
-   */
   async function handleSearch(searchQuery) {
     if (!$selectedVideo || !$selectedVideo.video_id) {
       error = "Please select a video first!";
@@ -59,141 +53,47 @@
   }
 </script>
 
-<main>
-  <div class="header-container">
-    <div class="logo-container">
-      <img src="logo.png" alt="Logo" />
+<main class="bg-gradient-to-br from-white to-gray-100 min-h-screen p-8 md:p-4 font-sans text-primary">
+  <div class="max-w-[1600px] mx-auto">
+    <div class="text-center mb-8">
+      <div class="mb-4">
+        <img src="logo.png" alt="Logo" class="h-[140px] mx-auto" />
+      </div>
+
+      <h1 class="text-4xl md:text-3xl font-semibold mb-2">
+        Video Semantic Search with AI
+      </h1>
+      <p class="text-lg text-gray-600">
+        Upload a video and search for specific moments using natural language
+      </p>
     </div>
 
-    <h1>Video Semantic Search with AI</h1>
-    <p class="subtitle">
-      Upload a video and search for specific moments using natural language
-    </p>
+    <VideoUploader on:uploaded={handleVideoUploaded} />
+    <VideoSelector />
+
+    <SearchForm
+      on:search={(e) => handleSearch(e.detail)}
+      {query}
+      hasResults={results.length > 0}
+    />
+
+    {#if loading}
+      <div class="text-center py-16 px-8">
+        <div class="w-[50px] h-[50px] mx-auto mb-4 border-4 border-gray-300 border-t-primary rounded-full animate-spin-custom"></div>
+        <p class="text-xl text-gray-600">Searching through video frames...</p>
+      </div>
+    {/if}
+
+    {#if error}
+      <div class="bg-red-50 text-red-700 p-4 rounded-xl text-center mb-8 font-semibold border-2 border-red-200">
+        ⚠️ {error}
+      </div>
+    {/if}
+
+    {#if !loading}
+      <ImageGrid {results} />
+    {/if}
+
+    <VideoPlayer />
   </div>
-
-  <VideoUploader on:uploaded={handleVideoUploaded} />
-  <VideoSelector />
-
-  <SearchForm
-    on:search={(e) => handleSearch(e.detail)}
-    {query}
-    hasResults={results.length > 0}
-  />
-
-  <!-- Loading State -->
-  {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
-      <p>Searching through video frames...</p>
-    </div>
-  {/if}
-
-  {#if error}
-    <div class="error-banner">
-      ⚠️ {error}
-    </div>
-  {/if}
-
-  <!-- Results Grid -->
-  {#if !loading}
-    <ImageGrid {results} />
-  {/if}
-
-  <VideoPlayer />
 </main>
-
-<style>
-  :global(body) {
-    background: linear-gradient(135deg, #ffffff, #f7f7f7);
-    font-family: "Inter", sans-serif;
-    color: #111e68;
-    padding: 2rem;
-    margin: 0;
-    min-height: 100vh;
-  }
-
-  main {
-    max-width: 1600px;
-    margin: 0 auto;
-  }
-
-  .header-container {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .logo-container {
-    margin-bottom: 1rem;
-  }
-
-  .logo-container img {
-    height: 140px;
-  }
-
-  h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 2.5rem;
-    font-weight: 600;
-  }
-
-  .subtitle {
-    margin: 0;
-    font-size: 1.1rem;
-    color: #666;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 4rem 2rem;
-  }
-
-  .spinner {
-    width: 50px;
-    height: 50px;
-    margin: 0 auto 1rem;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #111e68;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  .loading p {
-    font-size: 1.2rem;
-    color: #666;
-    margin: 0;
-  }
-
-  .error-banner {
-    background-color: #fee;
-    color: #c00;
-    padding: 1rem;
-    border-radius: 10px;
-    text-align: center;
-    margin-bottom: 2rem;
-    font-weight: 600;
-    border: 2px solid #fcc;
-  }
-
-  @media (max-width: 768px) {
-    :global(body) {
-      padding: 1rem;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-    }
-
-    .subtitle {
-      font-size: 1rem;
-    }
-  }
-</style>
