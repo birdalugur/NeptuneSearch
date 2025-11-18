@@ -76,7 +76,8 @@ async def upload_video(file: UploadFile = File(...)):
     Video dosyasını yükler, frame'leri çıkarır ve index'e ekler.
     """
     try:
-        logger.info(f"Received video upload: {file.filename}")
+        original_filename = file.filename
+        logger.info(f"Received video upload: {original_filename}")
 
         # Geçici dosya oluştur
         with tempfile.NamedTemporaryFile(
@@ -88,7 +89,7 @@ async def upload_video(file: UploadFile = File(...)):
 
         # Video'yu işle
         video_id, frame_metadata_list, video_metadata = video_processor.process_video(
-            tmp_path
+            tmp_path, original_filename
         )
 
         # Frame'lerden feature'ları çıkar

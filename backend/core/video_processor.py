@@ -135,7 +135,7 @@ class VideoProcessor:
         }
 
     def extract_frames(
-        self, video_path: Path, video_id: str
+        self, video_path: Path, video_id: str, original_filename: str
     ) -> Tuple[List[FrameMetadata], VideoMetadata]:
         """
         Videodan frame'leri çıkarır ve metadata oluşturur.
@@ -143,6 +143,7 @@ class VideoProcessor:
         Args:
             video_path: Video dosya yolu
             video_id: Video benzersiz ID'si
+            original_filename: Orijinal dosya adı
 
         Returns:
             (frame_metadata_listesi, video_metadata) tuple'ı
@@ -162,7 +163,7 @@ class VideoProcessor:
 
         video_metadata = VideoMetadata(
             video_id=video_id,
-            original_filename=video_path.name,
+            original_filename=original_filename,
             video_path=str(video_path),
             duration=duration,
             fps=fps,
@@ -219,13 +220,14 @@ class VideoProcessor:
         return frame_metadata_list, video_metadata
 
     def process_video(
-        self, video_file_path: Path
+        self, video_file_path: Path, original_filename: str
     ) -> Tuple[str, List[FrameMetadata], VideoMetadata]:
         """
         Video'yu işler: doğrular, frame çıkarır ve metadata oluşturur.
 
         Args:
-            video_file_path: Video dosya yolu
+            video_file_path: Video dosya yolu (geçici dosya)
+            original_filename: Orijinal dosya adı
 
         Returns:
             (video_id, frame_metadata_list, video_metadata) tuple'ı
@@ -242,7 +244,7 @@ class VideoProcessor:
         video_file_path.rename(permanent_path)
 
         frame_metadata_list, video_metadata = self.extract_frames(
-            permanent_path, video_id
+            permanent_path, video_id, original_filename
         )
 
         return video_id, frame_metadata_list, video_metadata
