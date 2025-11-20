@@ -11,17 +11,19 @@ import tempfile
 import shutil
 
 from api.models import (
+    SearchQuery,
     SearchResponse,
     FrameResult,
+    SegmentResult,
+    BestFrame,
     VideoUploadResponse,
     VideoInfo,
-    VideoSegmentRequest,
-    VideoSegmentResponse,
     HealthResponse,
 )
 from core.video_processor import VideoProcessor
 from core.feature_extractor import FeatureExtractor
 from core.search_engine import SearchEngine
+from core.segment_merger import SegmentMerger
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,6 +34,7 @@ router = APIRouter()
 video_processor: Optional[VideoProcessor] = None
 feature_extractor: Optional[FeatureExtractor] = None
 search_engine: Optional[SearchEngine] = None
+segment_merger: Optional[SegmentMerger] = None
 
 
 def initialize_services():
@@ -40,13 +43,14 @@ def initialize_services():
 
     Bu fonksiyon app başlatılırken çağrılmalıdır.
     """
-    global video_processor, feature_extractor, search_engine
+    global video_processor, feature_extractor, search_engine, segment_merger
 
     logger.info("Initializing services...")
 
     video_processor = VideoProcessor()
     feature_extractor = FeatureExtractor()
     search_engine = SearchEngine()
+    segment_merger = SegmentMerger(merge_threshold=0.0)
 
     search_engine.load_index()
 
@@ -126,19 +130,23 @@ async def upload_video(file: UploadFile = File(...)):
 
 
 @router.post("/search", response_model=SearchResponse)
-async def search(
-    query: str = Form(...),
-    video_id: Optional[str] = Form(None),
-    k: int = Form(30),
-    similarity_threshold: float = Form(0.1),
-):
+async def search(request: SearchQuery):
+    query = request.query
+    video_id = request.video_id
+    k = request.k
+    similarity_threshold = request.similarity_threshold
+    merge_segments = request.merge_segments
     """
     Arama endpoint.
 
-    Metin sorgusuyla benzer frame'leri bulur.
+    Metin sorgusuyla benzer frame'leri bulur ve isteğe bağlı olarak
+    çakışan segmentleri birleştirir.
     """
     try:
-        logger.info(f"Search query: '{query}', video_id={video_id}, k={k}")
+        logger.info(
+            f"Search query: '{query}', video_id={video_id}, k={k}, "
+            f"merge_segments={merge_segments}"
+        )
 
         if not search_engine.index:
             raise HTTPException(
@@ -147,10 +155,9 @@ async def search(
             )
 
         if video_id:
-            video_metadata = search_engine.get_video_metadata(video_id)
-            if not video_metadata:
+            if not search_engine.get_video_metadata(video_id):
                 raise HTTPException(
-                    status_code=404, detail=f"Video with id '{video_id}' not found."
+                    status_code=404, detail=f"Video '{video_id}' not found."
                 )
 
         # Text feature çıkar
@@ -163,7 +170,7 @@ async def search(
             video_id=video_id,
         )
 
-        # Response oluştur
+        # Frame sonuçlarını oluştur
         frame_results = []
         for result in search_results:
             frame_metadata = result["frame_metadata"]
@@ -182,54 +189,57 @@ async def search(
                 )
             )
 
-        return SearchResponse(
-            query=query,
-            video_id=video_id,
-            results=frame_results,
-            total_results=len(frame_results),
-        )
+        # Response oluştur
+        response_data = {
+            "query": query,
+            "video_id": video_id,
+            "results": frame_results,
+            "total_results": len(frame_results),
+        }
+
+        # Segment birleştirme işlemi
+        if merge_segments and search_results:
+            logger.info("Merging overlapping segments...")
+
+            # Segmentleri birleştir
+            merged_segments = segment_merger.merge_search_results(
+                search_results,
+                segment_duration=10.0,  # Her frame için ±5 saniye segment
+            )
+
+            # Segment sonuçlarını oluştur
+            segment_results = []
+            for segment in merged_segments:
+                segment_results.append(
+                    SegmentResult(
+                        video_id=segment.video_id,
+                        video_url=f"/videos/{segment.video_id}",
+                        start_time=segment.start_time,
+                        end_time=segment.end_time,
+                        duration=round(segment.end_time - segment.start_time, 2),
+                        best_score=segment.best_score,
+                        best_frame=BestFrame(**segment.best_frame),
+                        frame_count=segment.frame_count,
+                    )
+                )
+
+            # Özet bilgi
+            merge_info = segment_merger.get_segment_summary(merged_segments)
+
+            response_data["segments"] = segment_results
+            response_data["merge_info"] = merge_info
+
+            logger.info(
+                f"Segment merge completed: {len(segment_results)} segments "
+                f"created from {len(frame_results)} frames"
+            )
+
+        return SearchResponse(**response_data)
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Search error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/video-segment", response_model=VideoSegmentResponse)
-async def get_video_segment(request: VideoSegmentRequest):
-    """
-    Video segment bilgisi endpoint.
-
-    Belirli bir timestamp için video segment bilgilerini döndürür.
-    """
-    try:
-        # Video metadata'sını al
-        video_metadata = search_engine.get_video_metadata(request.video_id)
-
-        if not video_metadata:
-            raise HTTPException(status_code=404, detail="Video not found")
-
-        # Segment bilgilerini hesapla
-        segment_info = video_processor.get_video_segment_info(
-            request.timestamp, video_metadata
-        )
-
-        # Video URL oluştur
-        video_url = f"/videos/{request.video_id}"
-        return VideoSegmentResponse(
-            video_id=request.video_id,
-            video_url=video_url,
-            start_time=segment_info["start_time"],
-            end_time=segment_info["end_time"],
-            duration=segment_info["duration"],
-            center_timestamp=segment_info["center_timestamp"],
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Video segment error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

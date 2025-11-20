@@ -1,4 +1,3 @@
-<!-- frontend/src/App.svelte -->
 <script>
   import VideoUploader from "./components/VideoUploader.svelte";
   import SearchForm from "./components/SearchForm.svelte";
@@ -10,6 +9,8 @@
   import { selectedVideo } from "./stores/videoStore";
 
   let results = [];
+  let segments = [];
+  let mergeInfo = null;
   let query = "";
   let loading = false;
   let notifications = [];
@@ -46,6 +47,8 @@
     try {
       const response = await search($selectedVideo.video_id, searchQuery);
       results = response.results || [];
+      segments = response.segments || [];
+      mergeInfo = response.merge_info || null;
 
       if (results.length === 0) {
         showNotification(
@@ -53,7 +56,11 @@
           "warning",
         );
       } else {
-        showNotification(`Found ${results.length} matching frames!`, "success");
+        const segmentMsg =
+          segments.length > 0
+            ? `Found ${results.length} frames in ${segments.length} segments!`
+            : `Found ${results.length} matching frames!`;
+        showNotification(segmentMsg, "success");
       }
     } catch (err) {
       console.error("Search failed:", err);
@@ -62,6 +69,8 @@
         "error",
       );
       results = [];
+      segments = [];
+      mergeInfo = null;
     } finally {
       loading = false;
     }
@@ -92,6 +101,7 @@
       >
         Video Semantic Search
       </h1>
+
       <p class="text-lg text-gray-600 max-w-2xl mx-auto">
         Upload a video and search for specific moments using natural language AI
       </p>
@@ -129,11 +139,45 @@
           </div>
         {/if}
 
-        {#if !loading && results.length > 0}
+        {#if !loading && (results.length > 0 || segments.length > 0)}
           <div
             class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
           >
-            <ImageGrid {results} />
+            <!-- Merge Info Badge -->
+            {#if mergeInfo && segments.length > 0}
+              <div
+                class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl"
+              >
+                <div
+                  class="flex items-center gap-2 text-blue-800 font-semibold mb-2"
+                >
+                  <span class="text-xl">🎯</span>
+                  Segment Summary
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-600">Total Segments:</span>
+                    <span class="font-semibold text-blue-900 ml-2">
+                      {mergeInfo.total_segments}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Total Duration:</span>
+                    <span class="font-semibold text-blue-900 ml-2">
+                      {mergeInfo.total_duration?.toFixed(1)}s
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Original Frames:</span>
+                    <span class="font-semibold text-blue-900 ml-2">
+                      {results.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            {/if}
+
+            <ImageGrid {results} {segments} />
           </div>
         {/if}
       </div>

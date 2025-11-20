@@ -249,27 +249,3 @@ class VideoProcessor:
 
         return video_id, frame_metadata_list, video_metadata
 
-    def get_video_segment_info(
-        self, timestamp: float, video_metadata: VideoMetadata
-    ) -> Dict:
-        """
-        Belirli bir timestamp için video segment bilgilerini hesaplar.
-
-        Args:
-            timestamp: Frame timestamp'i (saniye)
-            video_metadata: Video metadata
-
-        Returns:
-            Segment bilgileri (start_time, end_time, duration)
-        """
-        offset = settings.VIDEO_PLAYBACK_OFFSET
-
-        start_time = max(0, timestamp - offset)
-        end_time = min(video_metadata.duration, timestamp + offset)
-
-        return {
-            "start_time": start_time,
-            "end_time": end_time,
-            "duration": end_time - start_time,
-            "center_timestamp": timestamp,
-        }

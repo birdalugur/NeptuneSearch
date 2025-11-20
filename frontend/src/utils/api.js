@@ -62,50 +62,28 @@ export async function uploadVideo(file, onProgress = null) {
  * @param {string} query - Arama sorgusu
  * @param {number} k - Maksimum sonuç sayısı
  * @param {number} similarityThreshold - Minimum benzerlik eşiği
- * @returns {Promise<Object>} Arama sonuçları
+ * @param {boolean} mergeSegments - Segmentleri birleştir (varsayılan: true)
  */
-export async function search(videoId, query, k = 30, similarityThreshold = 0.1) {
-  const formData = new FormData();
-  formData.append('video_id', videoId);
-  formData.append('query', query);
-  formData.append('k', k.toString());
-  formData.append('similarity_threshold', similarityThreshold.toString());
+export async function search(videoId, query, k = 30, similarityThreshold = 0.1, mergeSegments = true) {
+  const body = {
+    video_id: videoId || null,
+    query,
+    k,
+    similarity_threshold: similarityThreshold,
+    merge_segments: mergeSegments
+  };
 
   const response = await fetch(`${API_BASE_URL}/search`, {
     method: 'POST',
-    body: formData
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Search failed');
-  }
-
-  return response.json();
-}
-
-/**
- * Video segment bilgilerini alır
- * 
- * @param {string} videoId - Video ID
- * @param {number} timestamp - Frame timestamp'i
- * @returns {Promise<Object>} Video segment bilgileri
- */
-export async function getVideoSegment(videoId, timestamp) {
-  const response = await fetch(`${API_BASE_URL}/video-segment`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      video_id: videoId,
-      timestamp: timestamp
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to get video segment');
   }
 
   return response.json();
